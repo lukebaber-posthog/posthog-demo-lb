@@ -21,7 +21,7 @@ export function PostList({ posts }: { posts: Post[] }) {
       {posts.map((post) => (
         <li
           key={post.id}
-          className="rounded-md border border-border bg-background p-4"
+          className="border border-border bg-background p-4"
         >
           <p className="text-sm whitespace-pre-wrap break-words">
             {post.content}

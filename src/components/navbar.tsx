@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ThemeSelector } from "@/components/themes/selector";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "@/lib/auth/client";
+import { GoHome } from "react-icons/go";
+
 
 export function NavBar() {
   const { data: session, isPending } = useSession();
@@ -16,24 +18,7 @@ export function NavBar() {
   return (
     <nav className="flex items-center justify-between py-6 md:py-8">
       <Link href="/">
-        <div className="flex items-center">
-          <Image
-            className="lg:h-7 lg:w-auto dark:hidden"
-            src="/logo.svg"
-            alt="Neon logo"
-            width={88}
-            height={24}
-            priority
-          />
-          <Image
-            className="hidden lg:h-7 lg:w-auto dark:block"
-            src="/logo-dark.svg"
-            alt="Neon logo"
-            width={88}
-            height={24}
-            priority
-          />
-        </div>
+        <GoHome className="size-10 text-green-600" />
       </Link>
       <div className="flex items-center gap-4">
         <ThemeSelector />

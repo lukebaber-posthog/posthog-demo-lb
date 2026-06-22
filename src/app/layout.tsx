@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: "Vercel + Neon",
-  description: "Use Neon with Vercel",
+  title: "PostHog Demo",
+  description: "This is a beastly demo",
 };
 
 export default function RootLayout({
