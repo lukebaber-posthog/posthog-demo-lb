@@ -49,7 +49,7 @@ Run `vercel env pull` to fetch the environment variables from your Vercel projec
 Alternatively, obtain the database connection string from the Connection Details widget on the [Neon Dashboard](https://console.neon.tech/) and add it to the `.env` file:
 
 ```txt
-DATABASE_URL=<postgres://user:pass@host/db>
+DB_DATABASE_URL=<postgres://user:pass@host/db>
 ```
 
 #### Set the Better Auth environment variables
@@ -89,6 +89,7 @@ This project uses [shadcn/ui](https://ui.shadcn.com/) for building accessible an
 ### Configuration
 
 Shadcn/ui is configured in `components.json`. The project uses:
+
 - **Style**: New York
 - **Base Color**: Neutral
 - **Icon Library**: Lucide React
@@ -103,6 +104,7 @@ npx shadcn@latest add [component-name]
 ```
 
 For example:
+
 ```bash
 npx shadcn@latest add card
 npx shadcn@latest add dialog
@@ -111,6 +113,7 @@ npx shadcn@latest add dialog
 ### Theme Support
 
 The project includes a theme provider and selector:
+
 - **Theme Provider**: `src/components/themes/provider.tsx`
 - **Theme Selector**: `src/components/themes/selector.tsx`
 
@@ -162,9 +165,7 @@ await db.insert(user).values({
 });
 
 // Update a user
-await db.update(user)
-  .set({ name: "Jane Doe" })
-  .where(eq(user.id, "123"));
+await db.update(user).set({ name: "Jane Doe" }).where(eq(user.id, "123"));
 ```
 
 ### Running Migrations

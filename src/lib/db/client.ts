@@ -5,7 +5,7 @@ import * as authSchema from "@/lib/auth/schema";
 
 // Create the connection pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DB_DATABASE_URL,
 });
 
 // Attach to Vercel's serverless function pool (for Vercel deployments)
@@ -17,8 +17,8 @@ export const db = drizzle(pool, { schema: { ...authSchema } });
 
 // Database connection check function
 export async function checkDbConnection(): Promise<string> {
-  if (!process.env.DATABASE_URL) {
-    return "No DATABASE_URL environment variable";
+  if (!process.env.DB_DATABASE_URL) {
+    return "No DB_DATABASE_URL environment variable";
   }
   try {
     await pool.query("SELECT version()");
