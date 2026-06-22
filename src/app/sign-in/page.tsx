@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,12 +28,21 @@ export default function SignInPage() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Failed to sign in");
+        const errorMessage = result.error.message || "Failed to sign in";
+        setError(errorMessage);
+        posthog.capture("sign_in_failed", { error_message: errorMessage });
       } else {
+        posthog.identify(result.data?.user?.id ?? email, {
+          email,
+          name: result.data?.user?.name,
+        });
+        posthog.capture("user_signed_in", { method: "email" });
         router.push("/");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(errorMessage);
+      posthog.capture("sign_in_failed", { error_message: errorMessage });
     } finally {
       setLoading(false);
     }

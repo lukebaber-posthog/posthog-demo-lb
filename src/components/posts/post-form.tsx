@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
+import posthog from "posthog-js";
 import { createPost } from "@/lib/posts/actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +23,8 @@ export function PostForm() {
     <form
       ref={formRef}
       action={async (formData) => {
+        const content = String(formData.get("content") ?? "").trim();
+        posthog.capture("post_submitted", { content_length: content.length });
         await createPost(formData);
         formRef.current?.reset();
       }}

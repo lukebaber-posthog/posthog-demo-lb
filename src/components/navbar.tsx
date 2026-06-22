@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { ThemeSelector } from "@/components/themes/selector";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "@/lib/auth/client";
@@ -12,6 +13,8 @@ export function NavBar() {
   const { data: session, isPending } = useSession();
 
   const handleSignOut = async () => {
+    posthog.capture("user_signed_out");
+    posthog.reset();
     await signOut();
   };
 
