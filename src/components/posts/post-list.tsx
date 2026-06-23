@@ -11,7 +11,7 @@ export function PostList({ posts }: { posts: Post[] }) {
   if (posts.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No posts yet. Be the first to say something.
+        No posts yet. Be the first to share something with the plant community.
       </p>
     );
   }

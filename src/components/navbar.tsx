@@ -7,7 +7,7 @@ import posthog from "posthog-js";
 import { ThemeSelector } from "@/components/themes/selector";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "@/lib/auth/client";
-import { GoHome } from "react-icons/go";
+import { LuSprout } from "react-icons/lu";
 
 
 export function NavBar() {
@@ -34,9 +34,34 @@ export function NavBar() {
 
   return (
     <nav className="flex items-center justify-between py-6 md:py-8">
-      <Link href="/">
-        <GoHome className="size-10 text-green-600" />
-      </Link>
+      <div className="flex items-center gap-5 md:gap-7">
+        <Link href="/" aria-label="Home">
+          <LuSprout className="size-8 text-green-600" />
+        </Link>
+        <div className="hidden items-center gap-5 text-sm font-medium sm:flex">
+          <Link
+            href="/about"
+            data-testid="nav-about"
+            className="text-[#61646B] transition-colors hover:text-foreground dark:text-[#94979E]"
+          >
+            About
+          </Link>
+          <Link
+            href="/pricing"
+            data-testid="nav-pricing"
+            className="text-[#61646B] transition-colors hover:text-foreground dark:text-[#94979E]"
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/survey"
+            data-testid="nav-survey"
+            className="text-[#61646B] transition-colors hover:text-foreground dark:text-[#94979E]"
+          >
+            Survey
+          </Link>
+        </div>
+      </div>
       <div className="flex items-center gap-4">
         <ThemeSelector />
         {isPending ? (
@@ -44,9 +69,16 @@ export function NavBar() {
             Loading...
           </Button>
         ) : session?.user ? (
-          <Button variant="outline" onClick={handleSignOut}>
-            Sign Out
-          </Button>
+          <>
+            <Button variant="ghost" asChild>
+              <Link href="/notes" data-testid="nav-notes">
+                Notes
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          </>
         ) : (
           <Button variant="default" asChild>
             <Link href="/sign-in">Sign In</Link>

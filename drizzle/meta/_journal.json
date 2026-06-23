@@ -15,6 +15,13 @@
       "when": 1782172008177,
       "tag": "0001_clammy_squirrel_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782181162722,
+      "tag": "0002_solid_edwin_jarvis",
+      "breakpoints": true
     }
   ]
 }

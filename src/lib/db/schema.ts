@@ -11,3 +11,18 @@ export const posts = pgTable(
 );
 
 export type Post = typeof posts.$inferSelect;
+
+// Private per-user notes. `userId` holds the Neon Auth user id (a string UUID);
+// it's not a FK because auth users live in the managed `neon_auth` schema.
+export const notes = pgTable(
+  "notes",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("notes_user_id_idx").on(table.userId)],
+);
+
+export type Note = typeof notes.$inferSelect;

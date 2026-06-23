@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils";
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: "PostHog Demo",
-  description: "This is a beastly demo",
+  title: "Sprout — Plant Care Companion",
+  description:
+    "Keep your houseplants alive and thriving. Track every plant, get watering and light reminders, identify new plants, follow care guides, and swap tips with fellow plant parents.",
 };
 
 export default function RootLayout({
