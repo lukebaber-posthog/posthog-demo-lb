@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { saveSurveyStep } from "@/lib/survey/actions";
 import {
   SURVEY_QUESTIONS,
   SURVEY_TOTAL_STEPS,
@@ -29,6 +31,9 @@ export function SurveyFlow() {
   const stateRef = useRef({ phase, step });
   stateRef.current = { phase, step };
 
+  // Stable id for this survey session, used to upsert partial responses.
+  const responseIdRef = useRef<string>("");
+
   // Best-effort abandonment tracking: if the survey was started but never
   // completed, report the last fully completed step on unmount.
   useEffect(() => {
@@ -43,6 +48,7 @@ export function SurveyFlow() {
   const question = SURVEY_QUESTIONS.find((q) => q.step === step);
 
   const handleStart = () => {
+    responseIdRef.current = crypto.randomUUID();
     track(EVENTS.SURVEY_STARTED);
     setPhase("in_progress");
     setStep(1);
@@ -60,25 +66,38 @@ export function SurveyFlow() {
     return value !== undefined;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!question || !isAnswered(question)) return;
     track(EVENTS.SURVEY_STEP_COMPLETED, {
       step: question.step,
       question_id: question.id,
     });
+    await saveSurveyStep({
+      responseId: responseIdRef.current,
+      step: question.step,
+      value: String(answers[question.id] ?? ""),
+      distinctId: posthog.get_distinct_id(),
+    }).catch(() => {});
     setStep((s) => s + 1);
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!question || !isAnswered(question)) return;
     track(EVENTS.SURVEY_STEP_COMPLETED, {
-      step: 5,
+      step: question.step,
       question_id: question.id,
     });
     const recommendRaw = answers["recommend"];
     const recommend_score =
       typeof recommendRaw === "number" ? recommendRaw : undefined;
     track(EVENTS.SURVEY_COMPLETED, { recommend_score });
+    await saveSurveyStep({
+      responseId: responseIdRef.current,
+      step: question.step,
+      value: String(answers[question.id] ?? ""),
+      distinctId: posthog.get_distinct_id(),
+      completed: true,
+    }).catch(() => {});
     setPhase("complete");
   };
 
@@ -90,8 +109,8 @@ export function SurveyFlow() {
             Help us help your plants thrive 🌱
           </h1>
           <p className="text-base leading-snug tracking-tight text-[#61646B] md:text-lg dark:text-[#94979E]">
-            Five quick questions about how you care for your plants with Sprout.
-            It takes under a minute and helps us grow the right features.
+            Two quick questions and a little about your plant story. It takes
+            under a minute and helps us grow the right features.
           </p>
         </div>
         <div>
@@ -184,9 +203,9 @@ export function SurveyFlow() {
       {question.type === "text" && (
         <Textarea
           data-testid="survey-text"
-          rows={4}
+          rows={6}
           required
-          placeholder="Tell us what would help your plants thrive..."
+          placeholder="Share as much as you'd like — the more detail, the better..."
           value={(answers[question.id] as string) ?? ""}
           onChange={(e) => setAnswer(question.id, e.target.value)}
         />

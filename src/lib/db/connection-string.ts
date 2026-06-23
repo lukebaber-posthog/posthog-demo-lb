@@ -10,7 +10,7 @@ export const dbBranch: "prod" | "dev" = isProductionDb ? "prod" : "dev";
 
 export function getConnectionString(): string {
   const url = isProductionDb
-    ? process.env.DB_DATABASE_URL_PROD
+    ? process.env.DB_DATABASE_URL
     : process.env.DB_DATABASE_URL_DEV;
 
   if (!url) {

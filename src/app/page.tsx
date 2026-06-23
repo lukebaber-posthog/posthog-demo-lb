@@ -5,8 +5,14 @@ import { PostForm } from "@/components/posts/post-form";
 import { PostList } from "@/components/posts/post-list";
 import { getPosts } from "@/lib/posts/actions";
 
-export default async function Home() {
-  const posts = await getPosts();
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1);
+  const { posts, total, totalPages } = await getPosts(pageNum);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -18,7 +24,7 @@ export default async function Home() {
               Plant Board 🌱
             </h1>
             <p className="text-sm text-muted-foreground">
-              Share your plant wins, ask for help, and swap care tips.
+              Share your plant wins, ask for help, and swap care tips. Top-voted posts rise to the top.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -35,6 +41,34 @@ export default async function Home() {
           </div>
           <PostForm />
           <PostList posts={posts} />
+          {totalPages > 1 && (
+            <nav className="flex items-center justify-between gap-2 text-sm" aria-label="Pagination">
+              {pageNum > 1 ? (
+                <Button variant="outline" asChild>
+                  <Link
+                    href={pageNum - 1 === 1 ? "/" : `/?page=${pageNum - 1}`}
+                    data-testid="posts-prev"
+                  >
+                    ← Prev
+                  </Link>
+                </Button>
+              ) : (
+                <span className="w-16" />
+              )}
+              <span className="text-muted-foreground">
+                Page {pageNum} of {totalPages} · {total} posts
+              </span>
+              {pageNum < totalPages ? (
+                <Button variant="outline" asChild>
+                  <Link href={`/?page=${pageNum + 1}`} data-testid="posts-next">
+                    Next →
+                  </Link>
+                </Button>
+              ) : (
+                <span className="w-16" />
+              )}
+            </nav>
+          )}
         </main>
       </div>
     </div>

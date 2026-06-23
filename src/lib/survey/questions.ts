@@ -1,7 +1,6 @@
-// The 5-step Sprout plant-care survey. Step 4 is an open text field on purpose:
-// it's the friction point where the demo funnel shows a drop-off.
-// Step numbers and types are kept stable (choice, rating, choice, text, choice)
-// so the seed script and the saved PostHog funnel insight keep working.
+// The Sprout plant-care survey: 2 quick questions + 1 long-form story, then a
+// completion page. Step 3 (the long-form text) is the intended friction point
+// where the demo funnel shows its drop-off.
 export type SurveyQuestionType = "choice" | "rating" | "text";
 
 export type SurveyQuestion = {
@@ -14,11 +13,11 @@ export type SurveyQuestion = {
 
 export const SURVEY_QUESTIONS: SurveyQuestion[] = [
   {
-    id: "source",
+    id: "top_feature",
     step: 1,
     type: "choice",
-    prompt: "How did you first hear about Sprout?",
-    options: ["Search engine", "Social media", "A friend or fellow plant parent", "A local plant nursery"],
+    prompt: "Which feature keeps your plants happiest?",
+    options: ["Watering reminders", "Plant identification", "Care guides", "The community board"],
   },
   {
     // Keep id "recommend" — the survey flow reads it for the recommend_score property.
@@ -28,24 +27,10 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
     prompt: "How likely are you to recommend Sprout to a fellow plant parent? (1–5)",
   },
   {
-    id: "top_feature",
+    id: "plant_story",
     step: 3,
-    type: "choice",
-    prompt: "Which feature keeps your plants happiest?",
-    options: ["Watering reminders", "Plant identification", "Care guides", "The community board"],
-  },
-  {
-    id: "plant_problem",
-    step: 4,
     type: "text",
-    prompt: "In your own words, what's the one plant problem you wish Sprout could solve?",
-  },
-  {
-    id: "plant_count",
-    step: 5,
-    type: "choice",
-    prompt: "How many plants are you caring for right now?",
-    options: ["Just my first 🌱", "2–5", "6–15", "A whole jungle (15+)"],
+    prompt: "Tell us your plant story — your proudest win, your trickiest plant, and what you wish were easier.",
   },
 ];
 

@@ -27,6 +27,7 @@ const USER_COUNT = parseInt(process.env.USER_COUNT ?? "20", 10);
 const SURVEY_START_RATE = parseFloat(process.env.SURVEY_START_RATE ?? "0.8");
 const SURVEY_COMPLETE_RATE = parseFloat(process.env.SURVEY_COMPLETE_RATE ?? "0.45");
 const POST_RATE = parseFloat(process.env.POST_RATE ?? "0.5");
+const VOTE_RATE = parseFloat(process.env.VOTE_RATE ?? "0.6");
 const CONCURRENCY = parseInt(process.env.CONCURRENCY ?? "4", 10);
 const HEADLESS = process.env.HEADLESS !== "false";
 
@@ -139,6 +140,7 @@ const stats = {
   surveysCompleted: 0,
   droppedAtStep4: 0,
   posts: 0,
+  votes: 0,
 };
 
 // ── Journey steps ───────────────────────────────────────────────────────────────
@@ -254,9 +256,9 @@ async function signUp(page: Page, index: number, takeNextIndex: () => number): P
 }
 
 /**
- * Step 5: run the survey. Returns the outcome.
- * Completers go through step 4's required text and finish at step 5.
- * Drop-offs stop at step 4 without typing (the intended funnel drop).
+ * Run the survey (2 questions + a long-form story). Returns the outcome.
+ * Completers type the step-3 long-form answer and finish; drop-offs reach
+ * step 3 but won't type it (the intended funnel drop at the long-form step).
  */
 async function runSurvey(page: Page): Promise<SurveyOutcome> {
   if (!chance(SURVEY_START_RATE)) return "skipped";
@@ -308,31 +310,27 @@ async function runSurvey(page: Page): Promise<SurveyOutcome> {
     await sleep(250);
   };
 
-  // Step 1 — choice, Step 2 — rating, Step 3 — choice.
+  // Step 1 — choice, Step 2 — rating.
   await selectAndAdvance("[data-testid=survey-option]", "[data-testid=survey-next]");
   await selectAndAdvance("[data-testid=survey-rating]", "[data-testid=survey-next]", true);
-  await selectAndAdvance("[data-testid=survey-option]", "[data-testid=survey-next]");
 
-  // Step 4 — required text. Confirm we actually reached it before deciding.
+  // Step 3 — long-form text (the friction / drop-off point). Confirm we reached it.
   const textField = page.locator("[data-testid=survey-text]");
-  const atStep4 = await textField
+  const atLongForm = await textField
     .waitFor({ state: "visible", timeout: ACTION_TIMEOUT })
     .then(() => true)
     .catch(() => false);
-  if (!atStep4) return "dropped";
+  if (!atLongForm) return "dropped";
 
   if (!chance(SURVEY_COMPLETE_RATE)) {
-    // Intended drop-off: reached step 4, but won't type the open-ended answer.
+    // Intended drop-off: reached the long-form step, but won't type it out.
     await sleep(1000);
     return "dropped";
   }
 
   await textField.fill(pick(SURVEY_TEXT_LINES), { timeout: ACTION_TIMEOUT });
-  await page.locator("[data-testid=survey-next]").click({ timeout: ACTION_TIMEOUT });
-  await sleep(250);
-
-  // Step 5 — final choice + finish.
-  await selectAndAdvance("[data-testid=survey-option]", "[data-testid=survey-finish]");
+  // Step 3 is the last step → Finish.
+  await page.locator("[data-testid=survey-finish]").click({ timeout: ACTION_TIMEOUT });
 
   return await page
     .locator("[data-testid=survey-complete]")
@@ -355,6 +353,35 @@ async function maybePost(page: Page): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Optionally cast a few up/down votes on the board so posts get ranked. */
+async function maybeVote(page: Page): Promise<number> {
+  if (!chance(VOTE_RATE)) return 0;
+
+  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: ACTION_TIMEOUT });
+  await page.waitForLoadState("networkidle", { timeout: ACTION_TIMEOUT }).catch(() => {});
+
+  const ups = page.locator("[data-testid=post-upvote]");
+  const downs = page.locator("[data-testid=post-downvote]");
+  const count = await ups.count().catch(() => 0);
+  if (count === 0) return 0;
+
+  const numVotes = 1 + Math.floor(Math.random() * 3); // 1–3 votes
+  let cast = 0;
+  for (let i = 0; i < numVotes; i++) {
+    const idx = Math.floor(Math.random() * count);
+    try {
+      // Mostly upvotes, some downvotes → score variation drives ranking.
+      if (chance(0.7)) await ups.nth(idx).click({ timeout: ACTION_TIMEOUT });
+      else await downs.nth(idx).click({ timeout: ACTION_TIMEOUT });
+      cast++;
+      await sleep(300);
+    } catch {
+      /* a re-render shifted the list — just move on */
+    }
+  }
+  return cast;
 }
 
 // ── One full journey ─────────────────────────────────────────────────────────────
@@ -431,6 +458,9 @@ async function runJourney(
     result.posted = await maybePost(page);
     if (result.posted) stats.posts++;
 
+    // 7. Maybe vote on a few board posts (creates ranking + post_voted events).
+    stats.votes += await maybeVote(page);
+
     // Let posthog-js flush queued events before tearing down.
     await page.waitForTimeout(1500);
 
@@ -503,8 +533,9 @@ async function main() {
   console.log(`  signed up:          ${stats.signedUp}`);
   console.log(`  surveys started:    ${stats.surveysStarted}`);
   console.log(`  surveys completed:  ${stats.surveysCompleted}`);
-  console.log(`  dropped at step 4:  ${stats.droppedAtStep4}`);
+  console.log(`  dropped at long-form: ${stats.droppedAtStep4}`);
   console.log(`  posts created:      ${stats.posts}`);
+  console.log(`  votes cast:         ${stats.votes}`);
   console.log("[seed] ─────────────────────────────────────");
 }
 
