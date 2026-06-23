@@ -1,4 +1,4 @@
 import { auth } from "@/lib/auth/server";
-import { toNextJsHandler } from "better-auth/next-js";
 
-export const { GET, POST } = toNextJsHandler(auth);
+// Proxies /api/auth/* to the Neon Auth service configured in server.ts
+export const { GET, POST } = auth.handler();

@@ -1,7 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { attachDatabasePool } from "@vercel/functions";
-import * as authSchema from "@/lib/auth/schema";
 import * as dbSchema from "@/lib/db/schema";
 
 // Create the connection pool
@@ -12,9 +11,9 @@ const pool = new Pool({
 // Attach to Vercel's serverless function pool (for Vercel deployments)
 attachDatabasePool(pool);
 
-// Create Drizzle instance with the pool and schema
-// Combine all schema files here
-export const db = drizzle(pool, { schema: { ...authSchema, ...dbSchema } });
+// Create Drizzle instance with the pool and app schema (auth tables are
+// managed by Neon Auth in the `neon_auth` schema, not by Drizzle)
+export const db = drizzle(pool, { schema: { ...dbSchema } });
 
 // Database connection check function
 export async function checkDbConnection(): Promise<string> {

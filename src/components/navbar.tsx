@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import posthog from "posthog-js";
@@ -11,6 +12,19 @@ import { GoHome } from "react-icons/go";
 
 export function NavBar() {
   const { data: session, isPending } = useSession();
+
+  // Identify on the anonymous→identified transition only. This also covers Google
+  // OAuth, where the sign-in page redirects away before it can call identify().
+  // The distinct_id guard keeps it a no-op once the user is already identified,
+  // so it never re-fires on ordinary page loads.
+  useEffect(() => {
+    if (session?.user && posthog.get_distinct_id() !== session.user.id) {
+      posthog.identify(session.user.id, {
+        email: session.user.email,
+        name: session.user.name,
+      });
+    }
+  }, [session]);
 
   const handleSignOut = async () => {
     posthog.capture("user_signed_out");

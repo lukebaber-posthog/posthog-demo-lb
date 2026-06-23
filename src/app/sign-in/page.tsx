@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth/client";
+import { FcGoogle } from "react-icons/fc";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -48,6 +49,11 @@ export default function SignInPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    posthog.capture("sign_in_started", { method: "google" });
+    await signIn.social({ provider: "google", callbackURL: "/" });
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 md:max-w-lg md:px-0 lg:max-w-xl">
@@ -60,7 +66,25 @@ export default function SignInPage() {
               Enter your email and password to sign in to your account.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-8 w-full"
+              onClick={handleGoogleSignIn}
+            >
+              <FcGoogle className="size-5" />
+              Continue with Google
+            </Button>
+
+            <div className="mt-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#E4E5E7] dark:bg-[#303236]" />
+              <span className="text-xs text-[#61646B] dark:text-[#94979E]">
+                or
+              </span>
+              <div className="h-px flex-1 bg-[#E4E5E7] dark:bg-[#303236]" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-6">
               {error && (
                 <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-500 dark:text-red-500">
                   {error}

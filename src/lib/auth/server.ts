@@ -1,14 +1,10 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { nextCookies } from "better-auth/next-js";
-import { db } from "@/lib/db/client";
+import { createNeonAuth } from "@neondatabase/auth/next/server";
 
-export const auth = betterAuth({
-    database: drizzleAdapter(db, {
-        provider: "pg",
-    }),
-    emailAndPassword: {
-        enabled: true,
-    },
-    plugins: [nextCookies()] // make sure this is the last plugin in the array
+// Neon Auth (managed Better Auth). Users/sessions/accounts live in the
+// `neon_auth` schema and are managed by Neon — no local Drizzle auth schema.
+export const auth = createNeonAuth({
+  baseUrl: process.env.NEON_AUTH_BASE_URL!,
+  cookies: {
+    secret: process.env.NEON_AUTH_COOKIE_SECRET!,
+  },
 });
