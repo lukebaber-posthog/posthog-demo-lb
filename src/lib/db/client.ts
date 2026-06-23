@@ -2,10 +2,12 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { attachDatabasePool } from "@vercel/functions";
 import * as dbSchema from "@/lib/db/schema";
+import { getConnectionString } from "./connection-string";
 
-// Create the connection pool
+// Connection string is chosen per environment: prod branch on the main/production
+// deploy, dev branch on localhost and preview branches.
 const pool = new Pool({
-  connectionString: process.env.DB_DATABASE_URL,
+  connectionString: getConnectionString(),
 });
 
 // Attach to Vercel's serverless function pool (for Vercel deployments)
@@ -17,9 +19,6 @@ export const db = drizzle(pool, { schema: { ...dbSchema } });
 
 // Database connection check function
 export async function checkDbConnection(): Promise<string> {
-  if (!process.env.DB_DATABASE_URL) {
-    return "No DB_DATABASE_URL environment variable";
-  }
   try {
     await pool.query("SELECT version()");
     return "Database connected";
