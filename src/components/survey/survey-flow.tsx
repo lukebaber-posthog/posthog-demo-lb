@@ -77,7 +77,7 @@ export function SurveyFlow() {
       step: question.step,
       value: String(answers[question.id] ?? ""),
       distinctId: posthog.get_distinct_id(),
-    }).catch(() => {});
+    }).catch(() => { });
     setStep((s) => s + 1);
   };
 
@@ -97,7 +97,7 @@ export function SurveyFlow() {
       value: String(answers[question.id] ?? ""),
       distinctId: posthog.get_distinct_id(),
       completed: true,
-    }).catch(() => {});
+    }).catch(() => { });
     setPhase("complete");
   };
 
@@ -106,11 +106,10 @@ export function SurveyFlow() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3.5">
           <h1 className="text-3xl font-semibold leading-none tracking-tighter md:text-4xl">
-            Help us help your plants thrive 🌱
+            Tell us when you really think
           </h1>
           <p className="text-base leading-snug tracking-tight text-[#61646B] md:text-lg dark:text-[#94979E]">
-            Two quick questions and a little about your plant story. It takes
-            under a minute and helps us grow the right features.
+            We value your feedback...sometimes.
           </p>
         </div>
         <div>
@@ -165,9 +164,8 @@ export function SurveyFlow() {
                 key={option}
                 data-testid="survey-option"
                 variant="outline"
-                className={`h-auto justify-start whitespace-normal px-4 py-3 text-sm ${
-                  isSelected ? selectedClasses : unselectedClasses
-                }`}
+                className={`h-auto justify-start whitespace-normal px-4 py-3 text-sm ${isSelected ? selectedClasses : unselectedClasses
+                  }`}
                 aria-pressed={isSelected}
                 onClick={() => setAnswer(question.id, option)}
               >
@@ -187,9 +185,8 @@ export function SurveyFlow() {
                 key={rating}
                 data-testid="survey-rating"
                 variant="outline"
-                className={`size-12 text-base ${
-                  isSelected ? selectedClasses : unselectedClasses
-                }`}
+                className={`size-12 text-base ${isSelected ? selectedClasses : unselectedClasses
+                  }`}
                 aria-pressed={isSelected}
                 onClick={() => setAnswer(question.id, rating)}
               >

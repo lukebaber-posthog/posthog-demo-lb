@@ -13,6 +13,8 @@
  *   SURVEY_START_RATE     prob a user starts the survey (default 0.8)
  *   SURVEY_COMPLETE_RATE  prob a starter completes it   (default 0.45)
  *   POST_RATE             prob a user creates a post    (default 0.5)
+ *   GARDEN_JOIN_RATE      prob a user joins a garden    (default 0.85)
+ *   COHORT_OPTIN_RATE     prob a user opts into cohort  (default 0.4)
  *   CONCURRENCY           parallel journeys             (default 4)
  *   HEADLESS              "false" to show the browser   (default headless)
  */
@@ -28,6 +30,8 @@ const SURVEY_START_RATE = parseFloat(process.env.SURVEY_START_RATE ?? "0.8");
 const SURVEY_COMPLETE_RATE = parseFloat(process.env.SURVEY_COMPLETE_RATE ?? "0.45");
 const POST_RATE = parseFloat(process.env.POST_RATE ?? "0.5");
 const VOTE_RATE = parseFloat(process.env.VOTE_RATE ?? "0.6");
+const GARDEN_JOIN_RATE = parseFloat(process.env.GARDEN_JOIN_RATE ?? "0.85");
+const COHORT_OPTIN_RATE = parseFloat(process.env.COHORT_OPTIN_RATE ?? "0.4");
 const CONCURRENCY = parseInt(process.env.CONCURRENCY ?? "4", 10);
 const HEADLESS = process.env.HEADLESS !== "false";
 
@@ -47,6 +51,26 @@ function shuffle<T>(arr: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// Weighted garden assignment by card index → uneven garden sizes (better group
+// breakdowns). Weights favor earlier cards; falls back to uniform if the number
+// of garden cards differs from the weight list.
+const GARDEN_WEIGHTS = [0.4, 0.3, 0.2, 0.1];
+
+function pickGardenIndex(count: number): number {
+  if (count <= 0) return 0;
+  const weights =
+    count === GARDEN_WEIGHTS.length
+      ? GARDEN_WEIGHTS
+      : Array.from({ length: count }, () => 1 / count);
+  const r = Math.random();
+  let acc = 0;
+  for (let i = 0; i < count; i++) {
+    acc += weights[i];
+    if (r <= acc) return i;
+  }
+  return count - 1;
 }
 
 const POST_LINES = [
@@ -129,6 +153,7 @@ type SurveyOutcome = "completed" | "dropped" | "skipped";
 type JourneyResult = {
   index: number;
   signedUp: boolean;
+  garden: string | null;
   surveyStarted: boolean;
   surveyOutcome: SurveyOutcome;
   posted: boolean;
@@ -141,7 +166,12 @@ const stats = {
   droppedAtStep4: 0,
   posts: 0,
   votes: 0,
+  gardenJoins: 0,
+  cohortOptins: 0,
 };
+
+// Per-garden membership tally (group key → member count) for the summary.
+const gardenCounts: Record<string, number> = {};
 
 // ── Journey steps ───────────────────────────────────────────────────────────────
 
@@ -256,6 +286,47 @@ async function signUp(page: Page, index: number, takeNextIndex: () => number): P
 }
 
 /**
+ * Step 5: associate the user with a garden (a PostHog GROUP) so all subsequent
+ * events roll up to it, and have a subset also opt into the Plant People COHORT.
+ * Driving the real /join UI fires posthog.group() / $set via the app itself.
+ */
+async function joinCommunity(
+  page: Page
+): Promise<{ garden: string | null; optedIn: boolean }> {
+  const out = { garden: null as string | null, optedIn: false };
+
+  await page.goto(`${BASE_URL}/join`, { waitUntil: "domcontentloaded", timeout: ACTION_TIMEOUT });
+  await page.waitForLoadState("networkidle", { timeout: ACTION_TIMEOUT }).catch(() => {});
+
+  const gardenBtns = page.locator("[data-testid=garden-option]");
+  const ready = await gardenBtns
+    .first()
+    .waitFor({ state: "visible", timeout: ACTION_TIMEOUT })
+    .then(() => true)
+    .catch(() => false);
+  if (!ready) return out;
+
+  // Join a garden (most users do). Weighted pick → uneven garden sizes.
+  if (chance(GARDEN_JOIN_RATE)) {
+    const count = await gardenBtns.count().catch(() => 0);
+    if (count > 0) {
+      const btn = gardenBtns.nth(pickGardenIndex(count));
+      out.garden = await btn.getAttribute("data-garden").catch(() => null);
+      await btn.click({ timeout: ACTION_TIMEOUT }).catch(() => {});
+      await sleep(400);
+    }
+  }
+
+  // A separate ~40% opt into the cohort → the cohort population is not the same
+  // set as any one garden, which is the whole point of the contrast.
+  if (chance(COHORT_OPTIN_RATE)) {
+    out.optedIn = await clickIfPresent(page, "[data-testid=cohort-optin]");
+  }
+
+  return out;
+}
+
+/**
  * Run the survey (2 questions + a long-form story). Returns the outcome.
  * Completers type the step-3 long-form answer and finish; drop-offs reach
  * step 3 but won't type it (the intended funnel drop at the long-form step).
@@ -340,19 +411,27 @@ async function runSurvey(page: Page): Promise<SurveyOutcome> {
     .catch(() => "dropped" as const);
 }
 
-/** Step 6: optionally create a post on the home message board. */
-async function maybePost(page: Page): Promise<boolean> {
-  if (!chance(POST_RATE)) return false;
+/** Create zero or more posts on the board. Returns the number actually posted. */
+async function maybePost(page: Page): Promise<number> {
+  if (!chance(POST_RATE)) return 0;
 
   await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded", timeout: ACTION_TIMEOUT });
-  try {
-    await page.fill('textarea[name="content"]', pick(POST_LINES), { timeout: ACTION_TIMEOUT });
-    await page.getByRole("button", { name: "Post" }).first().click({ timeout: ACTION_TIMEOUT });
-    await sleep(800);
-    return true;
-  } catch {
-    return false;
+
+  // ~30% of posters are "power growers" who post several times, so the behavioral
+  // "Power growers" cohort (posted >= 3x in 30 days) actually has members.
+  const numPosts = chance(0.3) ? 3 + Math.floor(Math.random() * 2) : 1;
+  let made = 0;
+  for (let i = 0; i < numPosts; i++) {
+    try {
+      await page.fill('textarea[name="content"]', pick(POST_LINES), { timeout: ACTION_TIMEOUT });
+      await page.getByRole("button", { name: "Post" }).first().click({ timeout: ACTION_TIMEOUT });
+      await sleep(800);
+      made++;
+    } catch {
+      break;
+    }
   }
+  return made;
 }
 
 /** Optionally cast a few up/down votes on the board so posts get ranked. */
@@ -396,6 +475,7 @@ async function runJourney(
   const result: JourneyResult = {
     index,
     signedUp: false,
+    garden: null,
     surveyStarted: false,
     surveyOutcome: "skipped",
     posted: false,
@@ -448,17 +528,30 @@ async function runJourney(
     result.signedUp = new URL(page.url()).pathname === "/";
     if (result.signedUp) stats.signedUp++;
 
-    // 5. Survey.
+    // 5. Join a garden (group) + maybe opt into the cohort — BEFORE any further
+    //    activity, so posts/survey/votes roll up to the garden via $groups.
+    if (result.signedUp) {
+      const community = await joinCommunity(page);
+      result.garden = community.garden;
+      if (community.garden) {
+        stats.gardenJoins++;
+        gardenCounts[community.garden] = (gardenCounts[community.garden] ?? 0) + 1;
+      }
+      if (community.optedIn) stats.cohortOptins++;
+    }
+
+    // 6. Survey.
     result.surveyOutcome = await runSurvey(page);
     result.surveyStarted = result.surveyOutcome !== "skipped";
     if (result.surveyOutcome === "completed") stats.surveysCompleted++;
     if (result.surveyOutcome === "dropped") stats.droppedAtStep4++;
 
-    // 6. Maybe post.
-    result.posted = await maybePost(page);
-    if (result.posted) stats.posts++;
+    // 7. Maybe post (some users post multiple times → "power growers").
+    const postsMade = await maybePost(page);
+    result.posted = postsMade > 0;
+    stats.posts += postsMade;
 
-    // 7. Maybe vote on a few board posts (creates ranking + post_voted events).
+    // 8. Maybe vote on a few board posts (creates ranking + post_voted events).
     stats.votes += await maybeVote(page);
 
     // Let posthog-js flush queued events before tearing down.
@@ -467,6 +560,7 @@ async function runJourney(
     console.log(
       `[${position}/${total}] user test${result.index}: ` +
         `${result.signedUp ? "signed up" : "SIGNUP FAILED"}; ` +
+        `garden=${result.garden ?? "—"}; ` +
         `survey=${result.surveyOutcome}` +
         (result.posted ? "; posted" : "")
     );
@@ -536,6 +630,11 @@ async function main() {
   console.log(`  dropped at long-form: ${stats.droppedAtStep4}`);
   console.log(`  posts created:      ${stats.posts}`);
   console.log(`  votes cast:         ${stats.votes}`);
+  console.log(`  garden joins:       ${stats.gardenJoins}`);
+  console.log(`  cohort opt-ins:     ${stats.cohortOptins}`);
+  for (const [key, n] of Object.entries(gardenCounts).sort((a, b) => b[1] - a[1])) {
+    console.log(`    · ${key}: ${n}`);
+  }
   console.log("[seed] ─────────────────────────────────────");
 }
 

@@ -11,7 +11,7 @@ export function NoteList({ notes }: { notes: Note[] }) {
   if (notes.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No notes yet. Your private plant journal starts here. 🌱
+        No notes yet. Your private plant journal starts here.
       </p>
     );
   }

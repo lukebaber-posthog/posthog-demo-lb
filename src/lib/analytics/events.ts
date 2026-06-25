@@ -9,6 +9,8 @@ export const EVENTS = {
   SURVEY_STEP_COMPLETED: "survey_step_completed",
   SURVEY_COMPLETED: "survey_completed",
   SURVEY_ABANDONED: "survey_abandoned",
+  GARDEN_JOINED: "garden_joined",
+  PLANT_PEOPLE_OPTED_IN: "plant_people_opted_in",
 } as const;
 
 export type AppEvent = (typeof EVENTS)[keyof typeof EVENTS];

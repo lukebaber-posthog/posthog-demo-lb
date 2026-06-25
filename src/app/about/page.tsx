@@ -22,7 +22,7 @@ export default function AboutPage() {
     <SiteShell>
       <div className="flex flex-col gap-3">
         <h1 className="text-3xl font-semibold leading-none tracking-tighter md:text-4xl">
-          About Sprout 🌱
+          About Sprout
         </h1>
         <p className="max-w-xl text-base leading-snug tracking-tight text-[#61646B] md:text-lg dark:text-[#94979E]">
           Sprout is a friendly, lightweight plant-care companion that helps plant
@@ -51,7 +51,7 @@ export default function AboutPage() {
             key={value.title}
             className="rounded-xl border border-[#E4E5E7] p-5 dark:border-[#303236]"
           >
-            <div className="mb-2 h-1 w-8 rounded-full bg-[#00E599]" />
+            <div className="mb-2 h-1 w-8 rounded-full bg-green-600" />
             <h3 className="mb-1.5 text-base font-semibold leading-snug tracking-tight">
               {value.title}
             </h3>

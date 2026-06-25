@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import posthog from "posthog-js";
-import { ThemeSelector } from "@/components/themes/selector";
+import { ThemeToggle } from "@/components/themes/toggle";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/user-avatar";
 import { useSession, signOut } from "@/lib/auth/client";
 import { LuSprout } from "react-icons/lu";
 
@@ -60,29 +61,39 @@ export function NavBar() {
           >
             Survey
           </Link>
+          {session?.user && (
+            <Button asChild size="sm">
+              <Link href="/join" data-testid="nav-join">
+                Community
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <ThemeSelector />
+        {session?.user && (
+          <Button variant="ghost" asChild>
+            <Link href="/notes" data-testid="nav-notes">
+              Notes
+            </Link>
+          </Button>
+        )}
+        <ThemeToggle />
         {isPending ? (
           <Button variant="outline" disabled>
             Loading...
           </Button>
         ) : session?.user ? (
-          <>
-            <Button variant="ghost" asChild>
-              <Link href="/notes" data-testid="nav-notes">
-                Notes
-              </Link>
-            </Button>
-            <Button variant="outline" onClick={handleSignOut}>
-              Sign Out
-            </Button>
-          </>
+          <Button variant="outline" onClick={handleSignOut}>
+            Sign Out
+          </Button>
         ) : (
           <Button variant="default" asChild>
             <Link href="/sign-in">Sign In</Link>
           </Button>
+        )}
+        {session?.user && (
+          <UserAvatar name={session.user.name} email={session.user.email} />
         )}
       </div>
     </nav>

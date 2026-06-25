@@ -36,7 +36,7 @@ const PLANS: Plan[] = [
   {
     slug: "pro",
     name: "Gardener",
-    price: "$49",
+    price: "$1M",
     cadence: "/month",
     description: "Grow your collection with smarter reminders and unlimited plant know-how.",
     features: [
@@ -83,11 +83,10 @@ export function PricingPlans() {
       {PLANS.map((plan) => (
         <div
           key={plan.slug}
-          className={`flex flex-col rounded-xl border p-5 ${
-            plan.featured
+          className={`flex flex-col rounded-xl border p-5 ${plan.featured
               ? "border-[#00E599] dark:border-[#00E599]"
               : "border-[#E4E5E7] dark:border-[#303236]"
-          }`}
+            }`}
         >
           {plan.featured && (
             <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[#00E599]/15 px-2.5 py-0.5 text-xs font-medium text-green-600">

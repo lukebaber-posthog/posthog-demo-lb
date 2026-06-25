@@ -6,11 +6,10 @@ export default function PricingPage() {
     <SiteShell>
       <div className="max-w-xl">
         <h1 className="text-3xl font-semibold leading-none tracking-tighter md:text-4xl">
-          Simple, transparent pricing 🌱
+          Vauge pricing...
         </h1>
         <p className="mt-3.5 text-base leading-snug tracking-tight text-[#61646B] md:text-lg dark:text-[#94979E]">
-          Start free and grow into Sprout as your plant collection flourishes. No
-          hidden fees, cancel anytime.
+          Start free and then give us all your money.
         </p>
       </div>
 
