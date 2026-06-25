@@ -106,7 +106,7 @@ export function SurveyFlow() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3.5">
           <h1 className="text-3xl font-semibold leading-none tracking-tighter md:text-4xl">
-            Tell us when you really think
+            Tell us what you really think
           </h1>
           <p className="text-base leading-snug tracking-tight text-[#61646B] md:text-lg dark:text-[#94979E]">
             We value your feedback...sometimes.
